@@ -53,8 +53,8 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 2. **Clone the repository**:
 
 ```bash
-git clone https://github.com/dynamous-community/workshops.git
-cd workshops/custom-skill-agent
+git clone https://github.com/coliam00/custom-agent-with-skills.git
+cd custom-agent-with-skills
 ```
 
 3. **Sync dependencies**:
@@ -93,36 +93,70 @@ uv run python -m src.cli
 
 You'll see a Rich-based interface where you can interact with the agent. Try asking:
 - "What's the weather in New York?"
-- "Can you review this code for best practices?"
+- "Find papers about machine learning"
+- "What can I make with chicken and garlic?"
+- "What time is it in Tokyo?"
 
 ## Included Skills
 
 ### Weather Skill
 
-A simple skill demonstrating Level 2 and Level 3 progressive disclosure:
+Get current weather and forecasts for any location using the Open-Meteo API.
 
-- **Level 2**: Full instructions for getting weather data
-- **Level 3**: API reference documentation for Open-Meteo
+- **Level 2**: Instructions for getting weather data with coordinate lookup
+- **Level 3**: Complete API reference documentation
 
-Example interaction:
 ```
 User: What's the weather in Tokyo?
 Agent: [loads weather skill] [loads API reference] The current weather in Tokyo is...
 ```
 
+### Research Assistant Skill
+
+Search academic papers using the Semantic Scholar API (214M+ papers, free).
+
+- **Level 2**: Instructions for searching papers, authors, and citations
+- **Level 3**: API reference + search tips guide
+
+```
+User: Find papers about transformer neural networks
+Agent: [loads research_assistant skill] [loads api_reference]
+       Here are the most cited papers on transformers...
+```
+
+### Recipe Finder Skill
+
+Find recipes by ingredients, dietary needs, or cuisine using TheMealDB and Spoonacular APIs.
+
+- **Level 2**: Instructions for recipe search and meal planning
+- **Level 3**: API reference + comprehensive dietary restrictions guide
+
+```
+User: What can I make with chicken and garlic?
+Agent: [loads recipe_finder skill] [loads dietary_guide]
+       Here are some delicious recipes you can make...
+```
+
+### World Clock Skill
+
+Get current time in any timezone and convert times between locations.
+
+- **Level 2**: Instructions with 40+ pre-mapped cities to timezone IDs
+
+```
+User: What time is it in London?
+Agent: [loads world_clock skill] It's currently 3:30 PM GMT in London...
+```
+
 ### Code Review Skill
 
-An advanced skill demonstrating extensive Level 3 resources (~45KB total):
+Review code for quality, security, and best practices with extensive reference documentation (~45KB).
 
-- Multi-step review workflow
-- Three reference files:
-  - `best_practices.md` (~18KB) - Coding standards
-  - `security_checklist.md` (~24KB) - OWASP-based security review
-  - `common_antipatterns.md` (~34KB) - Code smell detection
+- **Level 2**: Multi-step review workflow
+- **Level 3**: Three reference files for comprehensive code analysis
 
-Example interaction:
 ```
-User: Review this authentication code for security issues
+User: Review this code for security issues
 Agent: [loads code_review skill] [loads security_checklist]
        I'll analyze this against security best practices...
 ```
@@ -130,11 +164,12 @@ Agent: [loads code_review skill] [loads security_checklist]
 ## Architecture
 
 ```
-custom-skill-agent/
+custom-agent-with-skills/
 |-- src/                      # Core agent implementation
 |   |-- agent.py              # Pydantic AI agent with skill tools
 |   |-- skill_loader.py       # Skill discovery and metadata parsing
 |   |-- skill_tools.py        # Progressive disclosure tools
+|   |-- skill_toolset.py      # FunctionToolset for reusable tools
 |   |-- http_tools.py         # HTTP request tools
 |   |-- dependencies.py       # Agent dependencies
 |   |-- providers.py          # LLM provider configuration
@@ -142,27 +177,53 @@ custom-skill-agent/
 |   |-- prompts.py            # System prompt templates
 |   +-- cli.py                # Rich-based CLI interface
 |
-|-- skills/                   # Skill library
-|   |-- weather/              # Simple weather skill
-|   |   |-- SKILL.md          # Skill instructions
-|   |   +-- references/       # API documentation
+|-- skills/                   # Skill library (5 skills)
+|   |-- weather/              # Weather forecasts via Open-Meteo
+|   |   |-- SKILL.md
+|   |   +-- references/
 |   |       +-- api_reference.md
 |   |
-|   +-- code_review/          # Advanced code review skill
-|       |-- SKILL.md          # Multi-step review workflow
-|       |-- references/       # Extensive documentation (~45KB)
+|   |-- research_assistant/   # Academic paper search via Semantic Scholar
+|   |   |-- SKILL.md
+|   |   +-- references/
+|   |       |-- api_reference.md
+|   |       +-- search_tips.md
+|   |
+|   |-- recipe_finder/        # Recipe search via TheMealDB/Spoonacular
+|   |   |-- SKILL.md
+|   |   +-- references/
+|   |       |-- api_reference.md
+|   |       +-- dietary_guide.md
+|   |
+|   |-- world_clock/          # Timezone conversions via WorldTimeAPI
+|   |   +-- SKILL.md
+|   |
+|   +-- code_review/          # Code analysis with extensive docs (~45KB)
+|       |-- SKILL.md
+|       |-- references/
 |       |   |-- best_practices.md
 |       |   |-- security_checklist.md
 |       |   +-- common_antipatterns.md
-|       +-- scripts/          # Helper scripts
+|       +-- scripts/
 |           +-- lint_patterns.py
 |
 |-- tests/                    # Test suite
 |   |-- test_skill_loader.py  # Skill loader tests
 |   |-- test_skill_tools.py   # Tool tests
-|   +-- test_agent.py         # Agent integration tests
+|   |-- test_agent.py         # Agent integration tests (71 tests)
+|   +-- evals/                # Evaluation system
+|       |-- skill_loading.yaml
+|       |-- response_quality.yaml
+|       |-- new_skills.yaml
+|       |-- evaluators.py
+|       +-- run_evals.py
 |
-+-- examples/                 # Reference implementations (MongoDB RAG)
+|-- scripts/                  # Validation and test scripts
+|   |-- validate_skills.py
+|   |-- test_agent.py
+|   +-- run_full_validation.py
+|
++-- examples/                 # Reference implementations
 ```
 
 ## Creating Your Own Skill
@@ -249,6 +310,9 @@ The agent's system prompt includes a summary of all available skills:
 ```
 Available Skills:
 - **weather**: Get weather information for locations using Open-Meteo API.
+- **research_assistant**: Search academic papers using Semantic Scholar.
+- **recipe_finder**: Search recipes by ingredients, cuisine, or dietary needs.
+- **world_clock**: Get current time in any timezone and convert times.
 - **code_review**: Review code for quality, security, and best practices.
 ```
 
@@ -340,14 +404,16 @@ uv run pytest tests/ -v
 
 ### Running Evaluations
 
-The project includes a comprehensive evaluation system with YAML-based datasets and custom evaluators:
+The project includes a comprehensive evaluation system with YAML-based datasets and custom evaluators (25 test cases across all 5 skills):
 
 ```bash
-# Run all evals
+# Run all evals (25 test cases)
 uv run python -m tests.evals.run_evals
 
 # Run specific dataset
 uv run python -m tests.evals.run_evals --dataset skill_loading
+uv run python -m tests.evals.run_evals --dataset new_skills
+uv run python -m tests.evals.run_evals --dataset response_quality
 
 # Verbose output with reasons
 uv run python -m tests.evals.run_evals --verbose

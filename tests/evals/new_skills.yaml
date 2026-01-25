@@ -1,0 +1,130 @@
+name: new_skills_verification
+
+cases:
+  # Research Assistant Tests
+  - name: research_paper_search
+    inputs: "Find papers about transformer neural networks"
+    metadata:
+      expected_skill: research_assistant
+      category: skill_loading
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: research_assistant
+      - ToolWasCalled:
+          tool_name: load_skill_tool
+      - ResponseNotEmpty:
+          min_length: 100
+
+  - name: research_author_query
+    inputs: "What are some influential papers in machine learning?"
+    metadata:
+      expected_skill: research_assistant
+      category: skill_loading
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: research_assistant
+      - ToolWasCalled:
+          tool_name: http_get_tool
+      - ResponseNotEmpty:
+          min_length: 100
+
+  - name: research_citation_query
+    inputs: "Find academic research on climate change impacts"
+    metadata:
+      expected_skill: research_assistant
+      category: response_quality
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: research_assistant
+      - ResponseContains:
+          text: paper
+
+  # Recipe Finder Tests
+  - name: recipe_ingredient_search
+    inputs: "What can I make with chicken and garlic?"
+    metadata:
+      expected_skill: recipe_finder
+      category: skill_loading
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: recipe_finder
+      - ToolWasCalled:
+          tool_name: load_skill_tool
+      - ResponseNotEmpty:
+          min_length: 100
+
+  - name: recipe_dietary_restriction
+    inputs: "Find me a vegetarian pasta recipe"
+    metadata:
+      expected_skill: recipe_finder
+      category: skill_loading
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: recipe_finder
+      - ToolWasCalled:
+          tool_name: http_get_tool
+      - ResponseNotEmpty:
+          min_length: 50
+
+  - name: recipe_cuisine_search
+    inputs: "Give me an Italian dinner recipe"
+    metadata:
+      expected_skill: recipe_finder
+      category: response_quality
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: recipe_finder
+      - ResponseContains:
+          text: recipe
+
+  - name: recipe_dietary_guide_usage
+    inputs: "I need a gluten-free dessert recipe"
+    metadata:
+      expected_skill: recipe_finder
+      category: skill_loading
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: recipe_finder
+      - ResponseNotEmpty:
+          min_length: 50
+
+  # World Clock Tests
+  - name: world_clock_current_time
+    inputs: "What time is it in Tokyo right now?"
+    metadata:
+      expected_skill: world_clock
+      category: skill_loading
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: world_clock
+      - ToolWasCalled:
+          tool_name: load_skill_tool
+      - ResponseNotEmpty:
+          min_length: 30
+
+  - name: world_clock_timezone_conversion
+    inputs: "If it's 3pm in New York, what time is it in London?"
+    metadata:
+      expected_skill: world_clock
+      category: skill_loading
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: world_clock
+      - ToolWasCalled:
+          tool_name: http_get_tool
+      - ResponseNotEmpty:
+          min_length: 30
+
+  - name: world_clock_multiple_cities
+    inputs: "What time is it in Paris and Berlin?"
+    metadata:
+      expected_skill: world_clock
+      category: response_quality
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: world_clock
+      - ResponseContains:
+          text: time
+
+evaluators:
+  - MaxDuration: 45.0

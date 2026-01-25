@@ -176,7 +176,9 @@ async def run_evals(dataset_name: str = None, verbose: bool = False) -> int:
             for failure in report.failures:
                 total_cases += 1
                 all_passed = False
-                print(f"[ERROR] {failure.name}: {failure.error}")
+                # Try different attributes for error message
+                error_msg = getattr(failure, 'error', None) or getattr(failure, 'message', None) or str(failure)
+                print(f"[ERROR] {failure.name}: {error_msg}")
 
             print("-" * 60)
             print(f"Cases: {passed_cases}/{total_cases} passed")

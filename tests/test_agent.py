@@ -165,14 +165,28 @@ class TestSkillDiscoveryIntegration:
         assert "code_review" in skill_names
 
     @pytest.mark.asyncio
-    async def test_skill_count_at_least_two(self) -> None:
-        """Verify at least 2 skills are discovered."""
+    async def test_skill_count_at_least_five(self) -> None:
+        """Verify at least 5 skills are discovered."""
         mock_deps = MockDependencies(settings=MockSettings())
         await mock_deps.initialize()
 
         skill_count = len(mock_deps.skill_loader.skills)
 
-        assert skill_count >= 2, f"Expected at least 2 skills, got {skill_count}"
+        assert skill_count >= 5, f"Expected at least 5 skills, got {skill_count}"
+
+    @pytest.mark.asyncio
+    async def test_all_five_skills_discovered(self) -> None:
+        """Verify all 5 skills are discovered."""
+        mock_deps = MockDependencies(settings=MockSettings())
+        await mock_deps.initialize()
+
+        skill_names = list(mock_deps.skill_loader.skills.keys())
+
+        assert "weather" in skill_names
+        assert "code_review" in skill_names
+        assert "research_assistant" in skill_names
+        assert "recipe_finder" in skill_names
+        assert "world_clock" in skill_names
 
     @pytest.mark.asyncio
     async def test_weather_skill_has_correct_metadata(self) -> None:
@@ -197,6 +211,42 @@ class TestSkillDiscoveryIntegration:
         assert code_review_skill is not None
         assert code_review_skill.name == "code_review"
         assert "review" in code_review_skill.description.lower() or "code" in code_review_skill.description.lower()
+
+    @pytest.mark.asyncio
+    async def test_research_assistant_skill_has_correct_metadata(self) -> None:
+        """Verify research_assistant skill has expected metadata."""
+        mock_deps = MockDependencies(settings=MockSettings())
+        await mock_deps.initialize()
+
+        skill = mock_deps.skill_loader.skills.get("research_assistant")
+
+        assert skill is not None
+        assert skill.name == "research_assistant"
+        assert "research" in skill.description.lower() or "paper" in skill.description.lower()
+
+    @pytest.mark.asyncio
+    async def test_recipe_finder_skill_has_correct_metadata(self) -> None:
+        """Verify recipe_finder skill has expected metadata."""
+        mock_deps = MockDependencies(settings=MockSettings())
+        await mock_deps.initialize()
+
+        skill = mock_deps.skill_loader.skills.get("recipe_finder")
+
+        assert skill is not None
+        assert skill.name == "recipe_finder"
+        assert "recipe" in skill.description.lower() or "food" in skill.description.lower()
+
+    @pytest.mark.asyncio
+    async def test_world_clock_skill_has_correct_metadata(self) -> None:
+        """Verify world_clock skill has expected metadata."""
+        mock_deps = MockDependencies(settings=MockSettings())
+        await mock_deps.initialize()
+
+        skill = mock_deps.skill_loader.skills.get("world_clock")
+
+        assert skill is not None
+        assert skill.name == "world_clock"
+        assert "time" in skill.description.lower() or "timezone" in skill.description.lower()
 
 
 class TestLoadSkillToolIntegration:
@@ -248,6 +298,51 @@ class TestLoadSkillToolIntegration:
 
         assert "Error" in result
         assert "not found" in result
+
+    @pytest.mark.asyncio
+    async def test_load_research_assistant_skill_returns_instructions(self) -> None:
+        """Test loading research_assistant skill returns skill instructions."""
+        from src.skill_tools import load_skill
+
+        mock_deps = MockDependencies(settings=MockSettings())
+        await mock_deps.initialize()
+
+        ctx = MockContext(deps=mock_deps)
+
+        result = await load_skill(ctx, "research_assistant")
+
+        assert "Research" in result or "research" in result.lower()
+        assert "Semantic Scholar" in result or "paper" in result.lower()
+
+    @pytest.mark.asyncio
+    async def test_load_recipe_finder_skill_returns_instructions(self) -> None:
+        """Test loading recipe_finder skill returns skill instructions."""
+        from src.skill_tools import load_skill
+
+        mock_deps = MockDependencies(settings=MockSettings())
+        await mock_deps.initialize()
+
+        ctx = MockContext(deps=mock_deps)
+
+        result = await load_skill(ctx, "recipe_finder")
+
+        assert "Recipe" in result or "recipe" in result.lower()
+        assert "ingredient" in result.lower() or "meal" in result.lower()
+
+    @pytest.mark.asyncio
+    async def test_load_world_clock_skill_returns_instructions(self) -> None:
+        """Test loading world_clock skill returns skill instructions."""
+        from src.skill_tools import load_skill
+
+        mock_deps = MockDependencies(settings=MockSettings())
+        await mock_deps.initialize()
+
+        ctx = MockContext(deps=mock_deps)
+
+        result = await load_skill(ctx, "world_clock")
+
+        assert "Clock" in result or "time" in result.lower()
+        assert "timezone" in result.lower() or "Timezone" in result
 
 
 class TestReadSkillFileIntegration:
@@ -310,6 +405,48 @@ class TestReadSkillFileIntegration:
         assert "Error" in result
         assert "not found" in result
 
+    @pytest.mark.asyncio
+    async def test_read_research_assistant_api_reference(self) -> None:
+        """Test reading research_assistant skill's API reference file."""
+        from src.skill_tools import read_skill_file
+
+        mock_deps = MockDependencies(settings=MockSettings())
+        await mock_deps.initialize()
+
+        ctx = MockContext(deps=mock_deps)
+
+        result = await read_skill_file(ctx, "research_assistant", "references/api_reference.md")
+
+        assert "Semantic Scholar" in result or "API" in result
+
+    @pytest.mark.asyncio
+    async def test_read_recipe_finder_api_reference(self) -> None:
+        """Test reading recipe_finder skill's API reference file."""
+        from src.skill_tools import read_skill_file
+
+        mock_deps = MockDependencies(settings=MockSettings())
+        await mock_deps.initialize()
+
+        ctx = MockContext(deps=mock_deps)
+
+        result = await read_skill_file(ctx, "recipe_finder", "references/api_reference.md")
+
+        assert "MealDB" in result or "Spoonacular" in result or "recipe" in result.lower()
+
+    @pytest.mark.asyncio
+    async def test_read_recipe_finder_dietary_guide(self) -> None:
+        """Test reading recipe_finder skill's dietary guide file."""
+        from src.skill_tools import read_skill_file
+
+        mock_deps = MockDependencies(settings=MockSettings())
+        await mock_deps.initialize()
+
+        ctx = MockContext(deps=mock_deps)
+
+        result = await read_skill_file(ctx, "recipe_finder", "references/dietary_guide.md")
+
+        assert "diet" in result.lower() or "vegetarian" in result.lower()
+
 
 class TestListSkillFilesIntegration:
     """Integration tests for list_skill_files_tool."""
@@ -345,6 +482,52 @@ class TestListSkillFilesIntegration:
         assert "best_practices.md" in result
         assert "security_checklist.md" in result
         assert "common_antipatterns.md" in result
+
+    @pytest.mark.asyncio
+    async def test_list_research_assistant_skill_files(self) -> None:
+        """Test listing files in research_assistant skill."""
+        from src.skill_tools import list_skill_files
+
+        mock_deps = MockDependencies(settings=MockSettings())
+        await mock_deps.initialize()
+
+        ctx = MockContext(deps=mock_deps)
+
+        result = await list_skill_files(ctx, "research_assistant")
+
+        assert "SKILL.md" in result
+        assert "api_reference.md" in result
+        assert "search_tips.md" in result
+
+    @pytest.mark.asyncio
+    async def test_list_recipe_finder_skill_files(self) -> None:
+        """Test listing files in recipe_finder skill."""
+        from src.skill_tools import list_skill_files
+
+        mock_deps = MockDependencies(settings=MockSettings())
+        await mock_deps.initialize()
+
+        ctx = MockContext(deps=mock_deps)
+
+        result = await list_skill_files(ctx, "recipe_finder")
+
+        assert "SKILL.md" in result
+        assert "api_reference.md" in result
+        assert "dietary_guide.md" in result
+
+    @pytest.mark.asyncio
+    async def test_list_world_clock_skill_files(self) -> None:
+        """Test listing files in world_clock skill."""
+        from src.skill_tools import list_skill_files
+
+        mock_deps = MockDependencies(settings=MockSettings())
+        await mock_deps.initialize()
+
+        ctx = MockContext(deps=mock_deps)
+
+        result = await list_skill_files(ctx, "world_clock")
+
+        assert "SKILL.md" in result
 
 
 class TestReferenceFileSizes:

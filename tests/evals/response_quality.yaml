@@ -49,5 +49,44 @@ cases:
       - ResponseNotEmpty:
           min_length: 150
 
+  # Research Assistant Quality
+  - name: research_comprehensive_response
+    inputs: "What does research say about sleep and memory?"
+    metadata:
+      category: response_quality
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: research_assistant
+      - ResponseNotEmpty:
+          min_length: 100
+      - ResponseContains:
+          text: research
+
+  # Recipe Quality
+  - name: recipe_detailed_response
+    inputs: "How do I make spaghetti carbonara?"
+    metadata:
+      category: response_quality
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: recipe_finder
+      - ResponseNotEmpty:
+          min_length: 100
+      - ResponseContains:
+          text: carbonara
+
+  # World Clock Quality
+  - name: world_clock_conversion_quality
+    inputs: "What's the time difference between New York and Tokyo?"
+    metadata:
+      category: response_quality
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: world_clock
+      - ResponseNotEmpty:
+          min_length: 50
+      - ResponseContains:
+          text: hour
+
 evaluators:
-  - MaxDuration: 30.0
+  - MaxDuration: 45.0

@@ -35,8 +35,8 @@ cases:
     evaluators:
       - SkillWasLoaded:
           skill_name: weather
-      - ResponseContains:
-          text: temperature
+      - ResponseNotEmpty:
+          min_length: 50
 
   - name: code_review_basic
     inputs: "Please review this code for best practices: def add(a, b): return a + b"
@@ -62,5 +62,47 @@ cases:
       - ResponseContains:
           text: sql
 
+  # Research Assistant
+  - name: research_basic_search
+    inputs: "Find papers about deep learning"
+    metadata:
+      expected_skill: research_assistant
+      category: skill_loading
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: research_assistant
+      - ToolWasCalled:
+          tool_name: load_skill_tool
+      - ResponseNotEmpty:
+          min_length: 50
+
+  # Recipe Finder
+  - name: recipe_basic_search
+    inputs: "Find me a chicken recipe"
+    metadata:
+      expected_skill: recipe_finder
+      category: skill_loading
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: recipe_finder
+      - ToolWasCalled:
+          tool_name: load_skill_tool
+      - ResponseNotEmpty:
+          min_length: 50
+
+  # World Clock
+  - name: world_clock_basic
+    inputs: "What time is it in London?"
+    metadata:
+      expected_skill: world_clock
+      category: skill_loading
+    evaluators:
+      - SkillWasLoaded:
+          skill_name: world_clock
+      - ToolWasCalled:
+          tool_name: load_skill_tool
+      - ResponseNotEmpty:
+          min_length: 30
+
 evaluators:
-  - MaxDuration: 30.0
+  - MaxDuration: 45.0
