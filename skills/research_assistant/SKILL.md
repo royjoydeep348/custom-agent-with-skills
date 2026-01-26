@@ -45,10 +45,18 @@ ALWAYS read `references/api_reference.md` before making API calls to ensure you 
 
 ### Step 3: Construct the Search
 
+**IMPORTANT: Make ONE well-constructed search query.** Do not make multiple API calls with variations of the same query. The API has rate limits, and multiple calls waste quota.
+
 For topic searches, use the paper search endpoint:
 ```
 https://api.semanticscholar.org/graph/v1/paper/search?query=YOUR_QUERY
 ```
+
+Tips for effective single queries:
+- Use specific, focused keywords (e.g., "transformer attention mechanism" not just "transformer")
+- Include relevant filters like `year`, `minCitationCount`, or `fieldsOfStudy` to narrow results
+- Request enough fields in one call: `title,authors,year,citationCount,abstract,tldr`
+- If the first query returns no results, ask the user to refine their search rather than trying variations
 
 Key parameters:
 - `query`: Search terms (required)

@@ -1,5 +1,6 @@
 """HTTP request tools for the agent."""
 
+import asyncio
 import logging
 from typing import Optional, Dict, Any
 import json
@@ -10,6 +11,10 @@ from pydantic_ai import RunContext
 import httpx
 
 logger = logging.getLogger(__name__)
+
+# Retry configuration
+MAX_RETRIES = 3
+RETRY_BASE_DELAY = 1.0  # seconds
 
 # Shared client for connection pooling
 _http_client: Optional[httpx.AsyncClient] = None
@@ -33,6 +38,7 @@ async def http_get(
 
     Use this tool when you need to fetch data from an API or website.
     Returns the response as text (JSON responses are returned as formatted JSON).
+    Automatically retries up to 3 times on rate limit (429) errors with backoff.
 
     Args:
         ctx: Agent runtime context
@@ -42,56 +48,73 @@ async def http_get(
     Returns:
         Response body as text, or error message if request fails
     """
-    try:
-        client = await get_http_client()
+    client = await get_http_client()
+    last_error = None
 
-        logger.info(f"http_get: url={url}")
+    for attempt in range(MAX_RETRIES):
+        try:
+            logger.info(f"http_get: url={url}, attempt={attempt + 1}/{MAX_RETRIES}")
 
-        response = await client.get(url, headers=headers or {})
+            response = await client.get(url, headers=headers or {})
 
-        # Check for HTTP errors
-        if response.status_code >= 400:
-            logger.warning(
-                f"http_get_error: url={url}, status={response.status_code}"
-            )
-            return f"Error: HTTP {response.status_code} - {response.reason_phrase}"
-
-        # Try to parse as JSON for nicer formatting
-        content_type = response.headers.get("content-type", "")
-        if "application/json" in content_type:
-            try:
-                data = response.json()
-                formatted = json.dumps(data, indent=2)
-                logger.info(
-                    f"http_get_success: url={url}, status={response.status_code}, "
-                    f"type=json, length={len(formatted)}"
+            # Handle rate limiting with retry
+            if response.status_code == 429:
+                delay = RETRY_BASE_DELAY * (2 ** attempt)  # Exponential backoff
+                logger.warning(
+                    f"http_get_rate_limited: url={url}, attempt={attempt + 1}, "
+                    f"retrying in {delay}s"
                 )
-                return formatted
-            except json.JSONDecodeError:
-                pass
+                if attempt < MAX_RETRIES - 1:
+                    await asyncio.sleep(delay)
+                    continue
+                else:
+                    return f"Error: Rate limited (HTTP 429) after {MAX_RETRIES} retries. Try again later."
 
-        # Return as text
-        text = response.text
-        logger.info(
-            f"http_get_success: url={url}, status={response.status_code}, "
-            f"type=text, length={len(text)}"
-        )
+            # Check for other HTTP errors (no retry)
+            if response.status_code >= 400:
+                logger.warning(
+                    f"http_get_error: url={url}, status={response.status_code}"
+                )
+                return f"Error: HTTP {response.status_code} - {response.reason_phrase}"
 
-        # Truncate very long responses
-        if len(text) > 50000:
-            text = text[:50000] + "\n\n... (response truncated)"
+            # Try to parse as JSON for nicer formatting
+            content_type = response.headers.get("content-type", "")
+            if "application/json" in content_type:
+                try:
+                    data = response.json()
+                    formatted = json.dumps(data, indent=2)
+                    logger.info(
+                        f"http_get_success: url={url}, status={response.status_code}, "
+                        f"type=json, length={len(formatted)}"
+                    )
+                    return formatted
+                except json.JSONDecodeError:
+                    pass
 
-        return text
+            # Return as text
+            text = response.text
+            logger.info(
+                f"http_get_success: url={url}, status={response.status_code}, "
+                f"type=text, length={len(text)}"
+            )
 
-    except httpx.TimeoutException:
-        logger.error(f"http_get_timeout: url={url}")
-        return f"Error: Request timed out for {url}"
-    except httpx.RequestError as e:
-        logger.error(f"http_get_request_error: url={url}, error={str(e)}")
-        return f"Error: Request failed - {str(e)}"
-    except Exception as e:
-        logger.exception(f"http_get_error: url={url}, error={str(e)}")
-        return f"Error: {str(e)}"
+            # Truncate very long responses
+            if len(text) > 50000:
+                text = text[:50000] + "\n\n... (response truncated)"
+
+            return text
+
+        except httpx.TimeoutException:
+            logger.error(f"http_get_timeout: url={url}")
+            last_error = f"Error: Request timed out for {url}"
+        except httpx.RequestError as e:
+            logger.error(f"http_get_request_error: url={url}, error={str(e)}")
+            last_error = f"Error: Request failed - {str(e)}"
+        except Exception as e:
+            logger.exception(f"http_get_error: url={url}, error={str(e)}")
+            last_error = f"Error: {str(e)}"
+
+    return last_error or "Error: Request failed after retries"
 
 
 async def http_post(
